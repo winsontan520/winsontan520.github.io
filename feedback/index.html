@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Feedback</title>
+<style>
+body{max-width:38rem;margin:0 auto;padding:2.5rem 1.25rem 4rem;
+font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+color:#1A2033;background:#EEF2F8}
+h1{font-size:1.7rem;line-height:1.2;margin:0 0 .4rem}
+a{color:#1C7FA6}
+@media (prefers-color-scheme:dark){body{background:#0E1322;color:#E4EAF5}a{color:#5CCFF5}}
+</style></head><body>
+<h1>Feedback</h1>
+<p>Opening the feedback form… If nothing happens, <a id="go" href="https://docs.google.com/forms/d/e/1FAIpQLSdVfVURkfK6hDCCeRdhnDQmZG09GSuAQho20WqClrZZ1EIE1g/viewform">open it here</a>.</p>
+<script>
+/*
+The one feedback link for every app and game. Each app opens
+
+    https://winsontan520.com/feedback/#app=<id>&v=<version>&device=<model>&os=<system>&lang=<tag>
+
+and this page sends the browser on to the shared Google Form with those answers filled in.
+The answers ride after the #, so they are never sent to this site's server. A ? works too.
+
+    app     the app's id, a key of APPS below (an unknown id is passed on as it is)
+    v       the app's version, as the app would show it: "0.1.4", "2.3.2 (42)"
+    device  the phone's model: "samsung SM-N976B"
+    os      the system and its version: "Android 14"
+    lang    the language the app is showing, as a tag ("en", "ja-JP", "zh-Hant-TW"); it
+            picks the form's language (English where the form has no section for it)
+    locale  the phone's own language, if it differs from lang; only noted beside the rest
+
+All of them are optional, and none may carry anything personal.
+
+To add an app: add its id and name to APPS, and copy a link helper into the app (Kotlin:
+Mosaic's FeedbackLink.kt; Godot: Hive Purge's scripts/feedback.gd). If the form's questions
+are ever deleted and re-added, their ids change: update ENTRY (the form's "Get pre-filled
+link" shows them) and no app needs a release.
+*/
+var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSdVfVURkfK6hDCCeRdhnDQmZG09GSuAQho20WqClrZZ1EIE1g/viewform";
+var ENTRY = {language: "entry.914023940", info: "entry.1655353953", app: "entry.987546684"};
+// The name is what lands in the responses sheet's App column, which its per-app tabs filter on.
+var APPS = {
+  "batik-bloom": "Batik Bloom",
+  "baton": "Baton",
+  "grandpas-chinatown-kitchen": "Grandpa's Chinatown Kitchen",
+  "hdb-resale-transactions": "HDB Resale Transactions",
+  "hive-purge": "Hive Purge",
+  "mosaic": "Mosaic",
+  "paper-harbor": "Paper Harbor",
+  "reborn-adventure": "Reborn Adventure",
+  "ruinborne": "Ruinborne",
+  "simple-sound-profiles": "Simple Sound Profiles"
+};
+// The form's Language options, by language tag. Each must equal the option's text exactly.
+// Simplified Chinese has no section, so plain "zh" is left to English.
+var LANGUAGES = {
+  "en": "English", "ja": "日本語", "de": "Deutsch", "it": "Italiano", "ko": "한국어",
+  "es": "Español", "pt": "Português", "fr": "Français", "th": "ไทย", "ru": "Русский",
+  "zh-hant": "繁體中文", "zh-tw": "繁體中文", "zh-hk": "繁體中文", "zh-mo": "繁體中文"
+};
+
+function formLanguage(tag) {
+  var parts = tag.toLowerCase().replace(/_/g, "-").split("-");
+  for (var n = Math.min(parts.length, 2); n > 0; n--) {
+    var known = LANGUAGES[parts.slice(0, n).join("-")];
+    if (known) return known;
+  }
+  // "zh-Hant-TW" was tried as "zh-hant"; "zh-Hans-TW" has no match, rightly.
+  return "English";
+}
+
+// The form's address for a link's query and fragment ("?a=b", "#a=b"; either may be empty).
+function feedbackUrl(search, hash) {
+  var given = {};
+  [search, hash].forEach(function (part) {
+    part.replace(/^[?#]/, "").split("&").forEach(function (pair) {
+      var at = pair.indexOf("=");
+      if (at < 1) return;
+      try {
+        var value = decodeURIComponent(pair.slice(at + 1).replace(/\+/g, " ")).trim();
+        if (value) given[pair.slice(0, at)] = value.slice(0, 80);
+      } catch (e) {}
+    });
+  });
+  var answers = [];
+  var add = function (entry, value) {
+    if (value) answers.push(entry + "=" + encodeURIComponent(value));
+  };
+  if (given.lang) add(ENTRY.language, formLanguage(given.lang));
+  add(ENTRY.info, [given.v, given.device, given.os, given.locale || given.lang]
+    .filter(Boolean).join(" · "));
+  if (given.app) add(ENTRY.app, APPS.hasOwnProperty(given.app) ? APPS[given.app] : given.app);
+  return answers.length ? FORM + "?usp=pp_url&" + answers.join("&") : FORM;
+}
+
+if (typeof location !== "undefined") {
+  var url = feedbackUrl(location.search, location.hash);
+  document.getElementById("go").href = url;
+  location.replace(url);
+}
+</script>
+</body></html>
